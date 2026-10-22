@@ -1,144 +1,199 @@
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Scanner;
 
 public class JDBCDemo {
 
+    private static final String URL =
+            "jdbc:mysql://localhost:3400/StudentsDB";
+    private static final String USER = "root";
+
+    // Replace with your MySQL password locally.
+    private static final String PASSWORD = "Boonaniin34!";
+
     public static void main(String[] args) {
 
-        String url = "jdbc:mysql://localhost:3400/StudentsDB";
-        String username = "root";
-        String password = "Boonaniin34!";
-
         try {
-            // Step 1: Load the MySQL JDBC driver
             Class.forName("com.mysql.cj.jdbc.Driver");
 
-            // Step 2: Connect Java to MySQL
             try (Connection connection =
-                         DriverManager.getConnection(url, username, password)) {
+                         DriverManager.getConnection(URL, USER, PASSWORD);
+                 Scanner scanner = new Scanner(System.in)) {
 
-                System.out.println("Established Connection");
+                System.out.println("Database connected successfully!");
 
-                // Task 1: Create the students table
                 createTable(connection);
 
-                // Task 2: Insert one example and ten more students
-                insertStudents(connection);
+                while (true) {
+                    System.out.println("\n===== STUDENT CRUD MENU =====");
+                    System.out.println("1. Create student");
+                    System.out.println("2. Read all students");
+                    System.out.println("3. Update student");
+                    System.out.println("4. Delete student");
+                    System.out.println("5. Exit");
+                    System.out.print("Choose an option: ");
 
-                // Task 3: Retrieve and display five students
-                retrieveStudents(connection);
+                    String choice = scanner.nextLine();
 
-                // Task 4: Update a student's firstname
-                updateStudentName(connection, 1, "UpdatedFirstName");
+                    switch (choice) {
+                        case "1":
+                            createStudent(connection, scanner);
+                            break;
+                        case "2":
+                            readStudents(connection);
+                            break;
+                        case "3":
+                            updateStudent(connection, scanner);
+                            break;
+                        case "4":
+                            deleteStudent(connection, scanner);
+                            break;
+                        case "5":
+                            System.out.println("Program closed.");
+                            return;
+                        default:
+                            System.out.println("Invalid choice. Try again.");
+                    }
+                }
 
-                // Task 5: Delete the student whose ID is 11
-                deleteStudent(connection, 11);
-
-                // Task 6: Calculate the average grade
-                calculateAverageGrade(connection);
-
-            } // Connection closes automatically here
+            }
 
         } catch (Exception e) {
+            System.out.println("Database operation failed:");
             e.printStackTrace();
         }
     }
 
-    // Task 1: Create the table
-    public static void createTable(Connection connection) throws Exception {
+    // Create the table if it does not exist
+    private static void createTable(Connection connection)
+            throws SQLException {
 
-        String sql = "CREATE TABLE IF NOT EXISTS students (" +
-                "id INT PRIMARY KEY, " +
-                "firstname VARCHAR(100), " +
-                "lastname VARCHAR(100), " +
-                "grade INT)";
+        String sql = """
+                CREATE TABLE IF NOT EXISTS students (
+                    id INT PRIMARY KEY,
+                    firstname VARCHAR(100) NOT NULL,
+                    lastname VARCHAR(100) NOT NULL,
+                    grade DOUBLE NOT NULL
+                )
+                """;
 
         try (Statement statement = connection.createStatement()) {
             statement.executeUpdate(sql);
         }
 
-        System.out.println("Students table created or already exists.");
+        System.out.println("Students table is ready.");
     }
 
-    // Task 2: Insert 11 students
-    public static void insertStudents(Connection connection) throws Exception {
+    // CREATE: add a new student
+    private static void createStudent(
+            Connection connection, Scanner scanner)
+            throws SQLException {
 
-        String sql = "INSERT IGNORE INTO students " +
-                "(id, firstname, lastname, grade) VALUES (?, ?, ?, ?)";
+        System.out.print("Enter student ID: ");
+        int id = Integer.parseInt(scanner.nextLine());
 
-        String[][] students = {
-                {"1", "John", "Doe", "90"},
-                {"2", "Sara", "Ali", "85"},
-                {"3", "Abebe", "Kebede", "78"},
-                {"4", "Hana", "Bekele", "92"},
-                {"5", "Dawit", "Mekonnen", "80"},
-                {"6", "Marta", "Tesfaye", "88"},
-                {"7", "Samuel", "Tadesse", "75"},
-                {"8", "Rahel", "Getachew", "95"},
-                {"9", "Daniel", "Alemu", "82"},
-                {"10", "Liya", "Solomon", "89"},
-                {"11", "Meron", "Abate", "84"}
-        };
+        System.out.print("Enter first name: ");
+        String firstname = scanner.nextLine();
+
+        System.out.print("Enter last name: ");
+        String lastname = scanner.nextLine();
+
+        System.out.print("Enter grade: ");
+        double grade = Double.parseDouble(scanner.nextLine());
+
+        String sql = """
+                INSERT INTO students (id, firstname, lastname, grade)
+                VALUES (?, ?, ?, ?)
+                """;
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.setString(2, firstname);
+            ps.setString(3, lastname);
+            ps.setDouble(4, grade);
 
-            for (String[] student : students) {
-                ps.setInt(1, Integer.parseInt(student[0]));
-                ps.setString(2, student[1]);
-                ps.setString(3, student[2]);
-                ps.setInt(4, Integer.parseInt(student[3]));
-
-                ps.executeUpdate();
-            }
+            int rows = ps.executeUpdate();
+            System.out.println(rows + " student added successfully.");
         }
-
-        System.out.println("Student insertion completed.");
     }
 
-    // Task 3: Retrieve five students
-    public static void retrieveStudents(Connection connection) throws Exception {
+    // READ: display all students
+    private static void readStudents(Connection connection)
+            throws SQLException {
 
-        String sql = "SELECT * FROM students ORDER BY id LIMIT 5";
+        String sql = "SELECT id, firstname, lastname, grade " +
+                "FROM students ORDER BY id";
 
         try (Statement statement = connection.createStatement();
              ResultSet rs = statement.executeQuery(sql)) {
 
-            System.out.println("\nFirst five students:");
+            System.out.println("\nID | First name | Last name | Grade");
+            System.out.println("-----------------------------------");
+
+            boolean found = false;
 
             while (rs.next()) {
-                System.out.println(
-                        "ID: " + rs.getInt("id") +
-                                ", Name: " + rs.getString("firstname") +
-                                " " + rs.getString("lastname") +
-                                ", Grade: " + rs.getInt("grade")
-                );
+                found = true;
+
+                System.out.printf("%d | %s | %s | %.2f%n",
+                        rs.getInt("id"),
+                        rs.getString("firstname"),
+                        rs.getString("lastname"),
+                        rs.getDouble("grade"));
+            }
+
+            if (!found) {
+                System.out.println("No students found.");
             }
         }
     }
 
-    // Task 4: Update a student's first name
-    public static void updateStudentName(
-            Connection connection, int id, String newFirstName)
-            throws Exception {
+    // UPDATE: change a student's name and grade
+    private static void updateStudent(
+            Connection connection, Scanner scanner)
+            throws SQLException {
 
-        String sql = "UPDATE students SET firstname = ? WHERE id = ?";
+        System.out.print("Enter the ID of the student to update: ");
+        int id = Integer.parseInt(scanner.nextLine());
+
+        System.out.print("Enter new first name: ");
+        String firstname = scanner.nextLine();
+
+        System.out.print("Enter new last name: ");
+        String lastname = scanner.nextLine();
+
+        System.out.print("Enter new grade: ");
+        double grade = Double.parseDouble(scanner.nextLine());
+
+        String sql = """
+                UPDATE students
+                SET firstname = ?, lastname = ?, grade = ?
+                WHERE id = ?
+                """;
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, newFirstName);
-            ps.setInt(2, id);
+            ps.setString(1, firstname);
+            ps.setString(2, lastname);
+            ps.setDouble(3, grade);
+            ps.setInt(4, id);
 
             int rows = ps.executeUpdate();
-            System.out.println("\nUpdated student rows: " + rows);
+
+            if (rows > 0) {
+                System.out.println("Student updated successfully.");
+            } else {
+                System.out.println("No student found with ID " + id);
+            }
         }
     }
 
-    // Task 5: Delete a student
-    public static void deleteStudent(Connection connection, int id)
-            throws Exception {
+    // DELETE: remove a student by ID
+    private static void deleteStudent(
+            Connection connection, Scanner scanner)
+            throws SQLException {
+
+        System.out.print("Enter the ID of the student to delete: ");
+        int id = Integer.parseInt(scanner.nextLine());
 
         String sql = "DELETE FROM students WHERE id = ?";
 
@@ -146,24 +201,11 @@ public class JDBCDemo {
             ps.setInt(1, id);
 
             int rows = ps.executeUpdate();
-            System.out.println("Deleted student rows: " + rows);
-        }
-    }
 
-    // Task 6: Calculate the average grade
-    public static void calculateAverageGrade(Connection connection)
-            throws Exception {
-
-        String sql = "SELECT AVG(grade) AS averageGrade FROM students";
-
-        try (Statement statement = connection.createStatement();
-             ResultSet rs = statement.executeQuery(sql)) {
-
-            if (rs.next()) {
-                System.out.printf(
-                        "Average grade: %.2f%n",
-                        rs.getDouble("averageGrade")
-                );
+            if (rows > 0) {
+                System.out.println("Student deleted successfully.");
+            } else {
+                System.out.println("No student found with ID " + id);
             }
         }
     }
