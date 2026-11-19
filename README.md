@@ -145,3 +145,10 @@ The following ChatGPT conversation documents the AI-assisted learning process, i
 
 [View ChatGPT Interaction History](https://chatgpt.com/c/6afea088-7bf8-83e9-b012-a9a070a31f5d)
 https://chatgpt.com/c/6afea741-f0fc-83ea-baac-e2e0700fba68
+
+##photos of postman and mysql running
+<img width="960" height="540" alt="image" src="https://github.com/user-attachments/assets/ecf78cc5-0f62-4d56-b89f-0e4ed4c5ba8d" />
+<img width="960" height="540" alt="image" src="https://github.com/user-attachments/assets/693da776-e6ee-4f17-8a7d-8249e6d630ca" />
+
+
+
